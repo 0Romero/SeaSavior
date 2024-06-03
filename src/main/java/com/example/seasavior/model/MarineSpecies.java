@@ -17,6 +17,7 @@ public class MarineSpecies {
     private String description;
     private String imageUrl;
     private boolean endagered;
+
     
 
 }

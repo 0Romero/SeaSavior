@@ -1,10 +1,10 @@
 package com.example.seasavior.controller;
 
-
-
 import com.example.seasavior.dto.ObservationCreateDTO;
 import com.example.seasavior.dto.ObservationDTO;
+import com.example.seasavior.model.Cliente;
 import com.example.seasavior.model.Observation;
+import com.example.seasavior.service.ClienteService;
 import com.example.seasavior.service.ObservationService;
 import com.example.seasavior.exception.ObservationNotFoundException;
 
@@ -14,36 +14,35 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/observations")
+@RequestMapping("/api/observation")
 public class ObservationController {
 
     @Autowired
     private ObservationService observationService;
 
+    @Autowired
+    private ClienteService clienteService;
+
     @GetMapping
-    public Page<ObservationDTO> getAllObservations(Pageable pageable) {
-        return observationService.findAll(pageable).map(this::convertToDTO);
+    public List<ObservationDTO> getAllObservations(Pageable pageable) {
+        Page<Observation> observations = observationService.findAll(pageable);
+        return observations.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<EntityModel<ObservationDTO>> getObservationById(@PathVariable Long id) {
-        Observation observation = observationService.findById(id)
-                .orElseThrow(() -> new ObservationNotFoundException(id));
+        Observation observation = observationService.findById(id).orElseThrow(() -> new ObservationNotFoundException(id));
         ObservationDTO observationDTO = convertToDTO(observation);
         EntityModel<ObservationDTO> resource = EntityModel.of(observationDTO);
-        WebMvcLinkBuilder linkTo = linkTo(methodOn(this.getClass()).getAllObservations(null));
+        WebMvcLinkBuilder linkTo = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).getAllObservations(Pageable.unpaged()));
         resource.add(linkTo.withRel("all-observations"));
         return ResponseEntity.ok(resource);
     }
@@ -51,26 +50,35 @@ public class ObservationController {
     @PostMapping
     public ResponseEntity<ObservationDTO> createObservation(@Valid @RequestBody ObservationCreateDTO observationCreateDTO) {
         Observation observation = convertToEntity(observationCreateDTO);
+        Cliente cliente = clienteService.findById(observationCreateDTO.getClienteId());
+        observation.setCliente(cliente);
+        
+        // Verifica a qualidade da água
+        String waterQuality = observationService.calculateWaterQuality(observation.getSalinity(), observation.getPh(), observation.getTemperature());
+        observation.setWaterQuality(waterQuality);
+        
+        // Salva a observação
         Observation savedObservation = observationService.save(observation);
-        return ResponseEntity.ok(convertToDTO(savedObservation));
+        
+        // Retorna a observação junto com a qualidade da água
+        ObservationDTO observationDTO = convertToDTO(savedObservation);
+        observationDTO.setWaterQuality(waterQuality);
+        
+        return ResponseEntity.ok(observationDTO);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ObservationDTO> updateObservation(@PathVariable Long id, @Valid @RequestBody ObservationCreateDTO observationCreateDTO) {
-        if (!observationService.findById(id).isPresent()) {
-            throw new ObservationNotFoundException(id);
-        }
         Observation observation = convertToEntity(observationCreateDTO);
         observation.setId(id);
-        Observation updatedObservation = observationService.save(observation);
+        Cliente cliente = clienteService.findById(observationCreateDTO.getClienteId());
+        observation.setCliente(cliente);
+        Observation updatedObservation = observationService.update(observation);
         return ResponseEntity.ok(convertToDTO(updatedObservation));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteObservation(@PathVariable Long id) {
-        if (!observationService.findById(id).isPresent()) {
-            throw new ObservationNotFoundException(id);
-        }
         observationService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

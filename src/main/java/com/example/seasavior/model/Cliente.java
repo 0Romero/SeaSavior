@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.springframework.hateoas.Link;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.CascadeType;

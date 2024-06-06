@@ -3,7 +3,7 @@ package com.example.seasavior.model;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;

@@ -1,14 +1,13 @@
 package com.example.seasavior.model;
 
-
 import java.util.List;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NonNull;
@@ -17,10 +16,6 @@ import lombok.NonNull;
 @Data
 public class Observation {
 
-   
-
-  
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,7 +23,7 @@ public class Observation {
     @NotBlank(message= "Localização Obrigatoria....")
     @Size(min= 3 , max=255)
     private String location;
-    
+
     @NonNull
     private Double ph;
 
@@ -38,27 +33,27 @@ public class Observation {
     @NonNull
     private Double temperature;
 
-    String waterQuality;
-
-    @NotBlank(message= "Espécies Marinhas presentes são Obrigatório caso for nulo apenas descreva como nulo....")
+    @NotEmpty(message = "A lista de espécies não pode estar vazia")
+    @Size(min = 1, message = "A lista de espécies deve conter pelo menos uma espécie")
     private List<String> speciesPresent;
+    
 
-    public String getWaterQuality() {
-        
-        return waterQuality;
-    }
+    private String waterQuality;
 
-    public void setWaterQuality(String waterQuality) {
-        this.waterQuality = waterQuality;
-    }
-
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cliente_id")
+    @JsonBackReference
     private Cliente cliente;
 
-    public Observation() {
-        
+    public Observation(String location, Double ph, Double salinity, Double temperature, List<String> speciesPresent) {
+        this.location = location;
+        this.ph = ph;
+        this.salinity = salinity;
+        this.temperature = temperature;
+        this.speciesPresent = speciesPresent;
     }
 
-    
-    
+    public Observation() {
+        // Default constructor
+    }
 }

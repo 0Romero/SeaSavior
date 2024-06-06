@@ -1,40 +1,49 @@
 package com.example.seasavior.service;
 
 import java.util.List;
+import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.seasavior.model.Cliente;
 import com.example.seasavior.repository.ClienteRepository;
 
-import jakarta.persistence.EntityNotFoundException;
 @Service
 public class ClienteService {
 
-    private final ClienteRepository clienteRepository;
+    @Autowired
+    private ClienteRepository clienteRepository;
 
-    public ClienteService(ClienteRepository clienteRepository) {
-        this.clienteRepository = clienteRepository;
-    }
-
-    public Cliente findById(Long id) {
-        return clienteRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Cliente not found with id: " + id));
-    }
-
-    public Cliente save(Cliente cliente) {
+    public Cliente criarCliente(Cliente cliente) {
         return clienteRepository.save(cliente);
     }
 
-    public Cliente update(Cliente cliente) {
-        return clienteRepository.save(cliente);
-    }
-
-    public List<Cliente> findAll() {
+    public List<Cliente> listarClientes() {
         return clienteRepository.findAll();
     }
 
-    public void deleteById(Long id) {
+    public Cliente buscarClientePorId(Long id) {
+        Optional<Cliente> cliente = clienteRepository.findById(id);
+        return cliente.orElse(null);
+    }
+
+    public Cliente atualizarCliente(Long id, Cliente novoCliente) {
+        Cliente cliente = buscarClientePorId(id);
+        if (cliente != null) {
+            novoCliente.setId(id);
+            return clienteRepository.save(novoCliente);
+        }
+        return null;
+    }
+
+    public void deletarCliente(Long id) {
         clienteRepository.deleteById(id);
     }
+    public Cliente findByCpf(String cpf) {
+       
+        return clienteRepository.findByCpf(cpf);
+    }
+
+    
 }

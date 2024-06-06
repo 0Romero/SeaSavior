@@ -1,79 +1,110 @@
 package com.example.seasavior.controller;
 
-import com.example.seasavior.dto.ClienteCreateDTO;
-import com.example.seasavior.dto.ClienteDTO;
 import com.example.seasavior.model.Cliente;
 import com.example.seasavior.service.ClienteService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.hateoas.EntityModel;
+
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
-@RequestMapping("/api/cliente")
+@RequestMapping("clientes")
+@Tag(name = "clientes")
 public class ClienteController {
 
     @Autowired
     private ClienteService clienteService;
 
-    @GetMapping
-    public List<ClienteDTO> getAllClients() {
-        return clienteService.findAll().stream().map(this::convertToDTO).collect(Collectors.toList());
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public List<String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        BindingResult result = ex.getBindingResult();
+        return result.getAllErrors().stream()
+                .map(error -> error.getDefaultMessage())
+                .collect(Collectors.toList());
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<EntityModel<ClienteDTO>> getClientById(@PathVariable Long id) {
-        Cliente cliente = clienteService.findById(id);
-        ClienteDTO clienteDTO = convertToDTO(cliente);
-        EntityModel<ClienteDTO> resource = EntityModel.of(clienteDTO);
-        WebMvcLinkBuilder linkTo = linkTo(methodOn(this.getClass()).getAllClients());
-        resource.add(linkTo.withRel("all-cliente"));
-        return ResponseEntity.ok(resource);
-    }
-
+    @Operation(summary = "Criar um novo cliente")
     @PostMapping
-    public ResponseEntity<ClienteDTO> createClient(@Valid @RequestBody ClienteCreateDTO clienteCreateDTO) {
-        Cliente cliente = convertToEntity(clienteCreateDTO);
-        Cliente savedCliente = clienteService.save(cliente);
-        return ResponseEntity.ok(convertToDTO(savedCliente));
+    public ResponseEntity<Cliente> criarCliente(@Valid @RequestBody Cliente cliente) {
+        Cliente novoCliente = clienteService.criarCliente(cliente);
+        addLinks(novoCliente);
+        return ResponseEntity.status(HttpStatus.CREATED).body(novoCliente);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ClienteDTO> updateClient(@PathVariable Long id, @Valid @RequestBody ClienteCreateDTO clienteCreateDTO) {
-        Cliente cliente = convertToEntity(clienteCreateDTO);
-        cliente.setId(id);
-        Cliente updatedCliente = clienteService.update(cliente);
-        return ResponseEntity.ok(convertToDTO(updatedCliente));
+    @Operation(summary = "Listar todos os clientes")
+    @GetMapping
+    public ResponseEntity<List<Cliente>> listarClientes() {
+        List<Cliente> clientes = clienteService.listarClientes();
+        
+        for (Cliente cliente : clientes) {
+            addLinks(cliente);
+        }
+        
+        return ResponseEntity.ok(clientes);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteClient(@PathVariable Long id) {
-        clienteService.deleteById(id);
+    @Operation(summary="Buscar cliente por ID")
+    @GetMapping("{id}")
+    public ResponseEntity<Cliente> buscarClientePorId(@PathVariable Long id) {
+        Cliente cliente = clienteService.buscarClientePorId(id);
+        if (cliente != null) {
+            addLinks(cliente);
+            return ResponseEntity.ok(cliente);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary="Atualizar cliente")
+    @PutMapping("{id}")
+    public ResponseEntity<Cliente> atualizarCliente(@PathVariable Long id, @RequestBody Cliente cliente) {
+        Cliente clienteAtualizado = clienteService.atualizarCliente(id, cliente);
+        if (clienteAtualizado != null) {
+            addLinks(clienteAtualizado);
+            return ResponseEntity.ok(clienteAtualizado);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Deletar cliente")
+    @DeleteMapping("{id}")
+    public ResponseEntity<Void> deletarCliente(@PathVariable Long id) {
+        clienteService.deletarCliente(id);
         return ResponseEntity.noContent().build();
     }
 
-    private ClienteDTO convertToDTO(Cliente cliente) {
-        ClienteDTO clienteDTO = new ClienteDTO();
-        clienteDTO.setId(cliente.getId());
-        clienteDTO.setName(cliente.getName());
-        clienteDTO.setEmail(cliente.getEmail());
-        return clienteDTO;
+    @Operation(summary="Buscar cliente por CPF")
+    @GetMapping("cpf/{cpf}")
+    public ResponseEntity<Cliente> findClienteByCpf(@PathVariable String cpf) {
+        Cliente cliente = clienteService.findByCpf(cpf);
+        if (cliente != null) {
+            addLinks(cliente);
+            return ResponseEntity.ok(cliente);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    private Cliente convertToEntity(ClienteCreateDTO clienteCreateDTO) {
-        Cliente cliente = new Cliente();
-        cliente.setName(clienteCreateDTO.getName());
-        cliente.setEmail(clienteCreateDTO.getEmail());
-        return cliente;
+    private void addLinks(Cliente cliente) {
+        Link selfLink = WebMvcLinkBuilder.linkTo(ClienteController.class).slash(cliente.getId()).withSelfRel();
+        cliente.add(selfLink);
+        // Adicione mais links personalizados conforme necessário
     }
+
 }

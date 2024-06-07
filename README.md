@@ -36,8 +36,8 @@ A API permite realizar as seguintes operações:
 
 ## Instalação e Configuração
 
-1. Clone este repositório: `git clone https://github.com/seu-usuario/sua-api.git`
-2. Navegue até o diretório do projeto: `cd sua-api`
+1. Clone este repositório: `git clone https://github.com/0Romero/seasavior.git`
+2. Navegue até o diretório do projeto: `cd seasavior`
 3. Execute a aplicação: `mvn spring-boot:run`
 
 A API estará disponível em `http://localhost:8080`.
@@ -49,7 +49,7 @@ Você pode utilizar qualquer cliente HTTP, como cURL, Postman ou Insomnia, para 
 ### Exemplo de Requisição
 
 ```http
-POST /observacoes/1
+POST /observations/{idCliente} 
 Content-Type: application/json
 
 {

@@ -1,6 +1,6 @@
 # API de Observações Marinhas
 
-Esta é uma API RESTful para gerenciar observações marinhas associadas a clientes.
+Esta é uma API RESTfull para gerenciar observações marinhas associadas a clientes.
 
 ## Tecnologias Utilizadas
 
